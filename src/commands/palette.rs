@@ -1,12 +1,75 @@
 use std::path::Path;
+use std::fs::File;
 use std::time::SystemTime;
+use std::io::Write as _write;
 use image::GenericImageView;
 use rand::Rng;
+use serenity::prelude::*;
+use serenity::model::prelude::*;
+use serenity::http::AttachmentType;
+use serenity::framework::standard::
+{
+    CommandResult,
+    macros::command,
+};
 
+// TODO: Most of these should be user defined -- Defaults?
 const BORDER_WIDTH: u32 = 5;
-const NUM_COLORS: u32 = 24;  // Most of these should be user defined
-const NUM_PER_COL:   u32 = 8;
-const HEIGHT_FACTOR: f32 = 1.3;
+const NUM_COLORS: u32 = 8;  
+const NUM_PER_COL:   u32 = 4;
+const HEIGHT_FACTOR: f32 = 1.25;
+const DIRNAME: &str = "palette";
+
+#[command]
+async fn palette(ctx: &Context, msg: &Message) -> CommandResult
+{
+    for attachment in &msg.attachments
+    {
+        let inpath  = format!("./{}/{}", &DIRNAME, &attachment.filename);
+
+        let content = match attachment.download().await
+        {
+            Ok(content) => content,
+            Err(why) =>
+            {
+                println!("Failed to download attachment: ({:?})", why);
+                msg.channel_id.say(&ctx.http, "Failed to download file").await?;
+
+                return Ok(());
+            }
+        };
+
+        let mut file = match File::create(&inpath)
+        {
+            Ok(file) => file,
+            Err(why) =>
+            {
+                println!("Failed to create file: ({:?})", why);
+                msg.channel_id.say(&ctx.http, "Failed to create file").await?;
+
+                return Ok(());
+            },
+        };
+
+        if let Err(why) = file.write(&content)
+        {
+            println!("Error writing to file: {:?}", why);
+
+            return Ok(());
+        }
+
+        let outfile = palettify_image(&inpath);
+        let outpath = format!("{}", &outfile);
+
+        let _msg = msg.channel_id.send_message(&ctx.http, |m|
+        {
+            m.add_file(AttachmentType::Path(Path::new(&outpath)));
+            m
+        }).await;
+    }
+
+    Ok(())
+}
 
 pub fn palettify_image(path: &str) -> String
 {
@@ -50,10 +113,14 @@ pub fn palettify_image(path: &str) -> String
 
     match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)
     {
-        Ok(n) => {  let name = format!("./palette/{}.png", n.as_secs());
-                    imgbuf.save(&name).expect("Problem saving result.");
+        Ok(n) =>
+        {  
+            let name = format!("./palette/{}.png", n.as_secs());
+            imgbuf.save(&name).expect("Problem saving result.");
 
-                    return name; },
+            return name; 
+        },
+        
         Err(_) => panic!("Unable to find timestamp."),
     }
 }

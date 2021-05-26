@@ -8,4 +8,7 @@
 # Added by cargo
 /target
 /palette
+*/*.png
+*/*.jpg
+*/*.jpeg
 lisa.code-workspace
