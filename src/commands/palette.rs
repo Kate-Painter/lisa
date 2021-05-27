@@ -1,15 +1,18 @@
 use std::path::Path;
 use std::fs::File;
 use std::time::SystemTime;
+use std::io;
 use std::io::Write as _write;
 use image::GenericImageView;
 use rand::Rng;
+use reqwest;
 use serenity::prelude::*;
 use serenity::model::prelude::*;
 use serenity::http::AttachmentType;
 use serenity::framework::standard::
 {
     CommandResult,
+    Args,
     macros::command,
 };
 
@@ -21,8 +24,35 @@ const HEIGHT_FACTOR: f32 = 1.25;
 const DIRNAME: &str = "palette";
 
 #[command]
-async fn palette(ctx: &Context, msg: &Message) -> CommandResult
+async fn palette(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 {
+    let mut paths: Vec<String> = vec![];
+    
+    let mut arg_string = match args.single::<String>()
+    {
+        Ok(r) => r,
+        Err(_) => "".to_string(),
+    };
+
+    if arg_string != ""
+    {
+        arg_string.retain(|c| !c.is_whitespace());
+
+        let pieces = arg_string.split("/").collect::<Vec<&str>>();
+
+        // TODO Input validation
+        let resp = reqwest::get(&arg_string)
+            .await?
+            .bytes()
+            .await?;
+        let mut bytes = resp.as_ref();
+        let mut out = File::create(format!("./{}/{}", &DIRNAME, pieces[pieces.len() - 1])).unwrap();
+
+        io::copy(&mut bytes, &mut out).expect("Failed to copy web content to file.");
+
+        paths.push(format!("./{}/{}", &DIRNAME, pieces[pieces.len() - 1]));
+    }
+
     for attachment in &msg.attachments
     {
         let inpath  = format!("./{}/{}", &DIRNAME, &attachment.filename);
@@ -58,9 +88,14 @@ async fn palette(ctx: &Context, msg: &Message) -> CommandResult
             return Ok(());
         }
 
-        let outfile = palettify_image(&inpath);
-        let outpath = format!("{}", &outfile);
+        paths.push(inpath);
+    }
 
+    for path in paths
+    {
+        let outfile = palettify_image(&path);
+        let outpath = format!("{}", &outfile);
+    
         let _msg = msg.channel_id.send_message(&ctx.http, |m|
         {
             m.add_file(AttachmentType::Path(Path::new(&outpath)));
@@ -115,7 +150,7 @@ pub fn palettify_image(path: &str) -> String
     {
         Ok(n) =>
         {  
-            let name = format!("./palette/{}.png", n.as_secs());
+            let name = format!("./palette/{}.jpg", n.as_secs());
             imgbuf.save(&name).expect("Problem saving result.");
 
             return name; 
