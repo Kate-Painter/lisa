@@ -8,6 +8,8 @@ use serenity::framework::standard::{
     macros::command,
 };
 
+
+
 #[command]
 async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 {
@@ -25,9 +27,11 @@ async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     };
 
     let keywords = arg_string.clone();
-    let results = tokio::task::spawn_blocking(move||
+    let mut page: u32 = 1;
+
+    let mut results = tokio::task::spawn_blocking(move||
     {
-        return fetch_direct_links(&keywords);
+        return fetch_direct_links(&keywords, page);
     }).await?;
 
         if results.len() == 0
@@ -47,7 +51,7 @@ async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                     e.color((150,235,252));
                     e.footer(|f|
                     {
-                        f.text(format!("{}/{}", 1, results.len()));
+                        f.text(format!("Image {}/{}             Page {}/{}", 1, results.len(), page, 10));
                         
                         f
                     });
@@ -55,7 +59,10 @@ async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                     e
                 });
                 
-                m.reactions(vec![ReactionType::from('◀'), ReactionType::from('▶')].into_iter());
+                m.reactions(vec![ReactionType::from('◀'),
+                                 ReactionType::from('▶'),
+                                 ReactionType::from('🔽'),
+                                 ReactionType::from('🔼'),].into_iter());
                 
                 m
             }).await;
@@ -99,7 +106,7 @@ async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                                     e.color((150,235,252));
                                     e.footer(|f|
                                     {
-                                        f.text(format!("{}/{}", current_image + 1, results.len()));
+                                        f.text(format!("Image {}/{}             Page {}/{}", current_image + 1, results.len(), page, 10));
                                         
                                         f
                                     });
@@ -122,7 +129,69 @@ async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                                     e.color((150,235,252));
                                     e.footer(|f|
                                     {
-                                        f.text(format!("{}/{}", current_image + 1, results.len()));
+                                        f.text(format!("Image {}/{}             Page {}/{}", current_image + 1, results.len(), page, 10));
+                                    
+                                        f
+                                    });
+
+                                    e
+                                });
+
+                                m
+                            }).await?;
+                        },
+                        "🔽" =>
+                        { 
+                            if page > 0 { page -= 1; }
+                            current_image = 0;
+
+                            let keywords = arg_string.clone();
+                            results = tokio::task::spawn_blocking(move||
+                            {
+                                return fetch_direct_links(&keywords, page);
+                            }).await?;
+
+                            message.edit(&ctx, |m|
+                            {
+                                m.embed(|e|
+                                    {
+                                    e.title(format!("R34: {}", &arg_string));
+                                    e.image(&results[current_image]);
+                                    e.color((150,235,252));
+                                    e.footer(|f|
+                                    {
+                                        f.text(format!("Image {}/{}             Page {}/{}", current_image + 1, results.len(), page, 10));
+                                    
+                                        f
+                                    });
+
+                                    e
+                                });
+
+                                m
+                            }).await?;
+                        },
+                        "🔼" =>
+                        { 
+                            if page < 5 { page += 1; } else { page = 1 }
+                            current_image = 0;
+
+                            let keywords = arg_string.clone();
+                            results = tokio::task::spawn_blocking(move||
+                            {
+                                return fetch_direct_links(&keywords, page);
+                            }).await?;
+
+                            message.edit(&ctx, |m|
+                            {
+                                m.embed(|e|
+                                    {
+                                    e.title(format!("R34: {}", &arg_string));
+                                    e.image(&results[current_image]);
+                                    e.color((150,235,252));
+                                    e.footer(|f|
+                                    {
+                                        f.text(format!("Image {}/{}             Page {}/{}", current_image + 1, results.len(), page, 10));
                                     
                                         f
                                     });
@@ -149,10 +218,10 @@ async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 /**
  *  Returns Vec<&str> of direct links to results of a rule34.paheal.net search using the provided space delimited keywords
  */
-pub fn fetch_direct_links(keywords: &str) -> Vec<String>
+pub fn fetch_direct_links(keywords: &str, page: u32) -> Vec<String>
 {
     // Create search request
-    let page: String = format!("https://rule34.paheal.net/post/list/{}/1", keywords);
+    let page: String = format!("https://rule34.paheal.net/post/list/{}/{}", &keywords, &page);
 
     // Send request and hold response
     let response = reqwest::blocking::get(page).unwrap();
