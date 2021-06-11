@@ -1,4 +1,5 @@
 mod commands;
+//mod interface;
 
 use std::{collections::{HashMap, HashSet}, env, fmt::Write, sync::Arc};
 use serenity::prelude::*;
@@ -24,6 +25,8 @@ use commands::
 {
     palette::*,
     r34::*,
+    mgk8ball::*,
+    color::*,
 };
 
 struct CommandCounter;
@@ -31,6 +34,13 @@ struct CommandCounter;
 impl TypeMapKey for CommandCounter
 {
     type Value = HashMap<String, u64>;
+}
+
+struct AskLisaBool;
+
+impl TypeMapKey for AskLisaBool
+{
+    type Value = Arc<RwLock<bool>>;
 }
 
 struct R34Links;
@@ -53,7 +63,7 @@ impl EventHandler for Handler
 
 #[group]
 #[summary = "General Commands"]
-#[commands(commands, palette, r34)]
+#[commands(commands, palette, r34, asklisa, color)]
 struct General;
 
 #[help]
@@ -161,6 +171,7 @@ async fn main()
         let mut data = client.data.write().await;
         data.insert::<CommandCounter>(HashMap::default());
         data.insert::<R34Links>(Arc::new(RwLock::new(Vec::default())));
+        data.insert::<AskLisaBool>(Arc::new(RwLock::new(false)));
     }
 
     if let Err(why) = client.start().await

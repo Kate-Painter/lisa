@@ -8,8 +8,6 @@ use serenity::framework::standard::{
     macros::command,
 };
 
-
-
 #[command]
 async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 {
@@ -41,7 +39,7 @@ async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         else
         {
             thread::sleep(time::Duration::new(1,0));
-            
+
             let msg = msg.channel_id.send_message(&ctx.http, |m|
             {
                 m.embed(|e|
@@ -58,7 +56,7 @@ async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
                     e
                 });
-                
+
                 m.reactions(vec![ReactionType::from('◀'),
                                  ReactionType::from('▶'),
                                  ReactionType::from('🔽'),
@@ -71,7 +69,7 @@ async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             let mut current_image = 0;
 
             thread::sleep(time::Duration::new(0,500000000));
-    
+
             loop
             {
                 if let Some(r) = &message.await_reaction(ctx)
@@ -212,6 +210,7 @@ async fn r34(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                 }
             }
         }
+        
     Ok(())
 }
 

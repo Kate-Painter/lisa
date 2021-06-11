@@ -1,19 +1,19 @@
-use std::path::Path;
-use std::fs::File;
-use std::time::SystemTime;
-use std::io;
-use std::io::Write as _write;
+use std::
+{
+    path::Path,
+    fs::File,
+    time::SystemTime,
+    io::{ Write as _write, copy },
+};
 use image::GenericImageView;
 use rand::Rng;
 use reqwest;
-use serenity::prelude::*;
-use serenity::model::prelude::*;
-use serenity::http::AttachmentType;
-use serenity::framework::standard::
+use serenity::
 {
-    CommandResult,
-    Args,
-    macros::command,
+    prelude::*,
+    model::prelude::*,
+    http::AttachmentType,
+    framework::standard::{ CommandResult, Args, macros::command },
 };
 
 // TODO: Most of these should be user defined -- Defaults?
@@ -40,7 +40,7 @@ async fn palette(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
         let pieces = arg_string.split("/").collect::<Vec<&str>>();
 
-        // TODO Input validation
+        // TODO: Input validation -- Necessary? Maybe not. Use brain harder.
         let resp = reqwest::get(&arg_string)
             .await?
             .bytes()
@@ -48,14 +48,14 @@ async fn palette(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         let mut bytes = resp.as_ref();
         let mut out = File::create(format!("./{}/{}", &DIRNAME, pieces[pieces.len() - 1])).unwrap();
 
-        io::copy(&mut bytes, &mut out).expect("Failed to copy web content to file.");
+        copy(&mut bytes, &mut out).expect("Failed to copy web content to file.");
 
         paths.push(format!("./{}/{}", &DIRNAME, pieces[pieces.len() - 1]));
     }
 
     for attachment in &msg.attachments
     {
-        let inpath  = format!("./{}/{}", &DIRNAME, &attachment.filename);
+        let inpath = format!("./{}/{}", &DIRNAME, &attachment.filename);
 
         let content = match attachment.download().await
         {
