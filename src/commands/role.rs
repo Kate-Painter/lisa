@@ -1,22 +1,18 @@
 use serenity::
 {
-    utils::Colour,
     prelude::*,
     model::prelude::*,
     framework::standard::{ CommandResult, Args, macros::command },
 };
-use hex;
 
 #[command]
-async fn color(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
+async fn role(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 {
     let arg_string = match args.single::<String>()
     {
         Ok(r) => r,
         Err(_) => "".to_string(),
     };
-
-    let decoded_color = hex::decode(&arg_string).expect("Failed to decode color from hex string.");
 
     if arg_string != ""
     {
@@ -44,12 +40,12 @@ async fn color(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         if target_role != ctx.http.get_guild_roles(*guild.id.as_u64()).await?[0].clone()
         {
             target_role.edit(&ctx, |r| {
-                r.colour(Colour::from_rgb(decoded_color[0], decoded_color[1], decoded_color[2]).0 as u64);
+                r.name(arg_string);
 
                 r
             }).await?;
         }
-        
+
         msg.react(&ctx, '✅').await?;
     }
     else

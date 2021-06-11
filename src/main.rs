@@ -27,6 +27,7 @@ use commands::
     r34::*,
     mgk8ball::*,
     color::*,
+    role::*,
 };
 
 struct CommandCounter;
@@ -63,7 +64,7 @@ impl EventHandler for Handler
 
 #[group]
 #[summary = "General Commands"]
-#[commands(commands, palette, r34, asklisa, color)]
+#[commands(commands, palette, r34, asklisa, color, role)]
 struct General;
 
 #[help]
